@@ -1,3 +1,5 @@
+*.jpeg
+session
 rpi_action_cam
 tags
 *.swp
