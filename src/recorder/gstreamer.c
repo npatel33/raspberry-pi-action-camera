@@ -1,6 +1,91 @@
 #include "gstreamer.h"
 
 /**
+* @file gstreamer.c
+* @brief Contains routines to initialize and use gstreamer
+* @author Nisarg Patel
+*/
+
+
+/**
+* @fn bus_callback (GstBus *bus, GstMessage *msg, gpointer data)
+* @brief callback function for different bus activity
+* @param bus pointer to the bus variable
+* @param msg pointer to the bus message
+* @param data bus data
+*/
+static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data)
+{
+    g_print("Got %s message\n", GST_MESSAGE_TYPE_NAME(msg));
+
+    switch (GST_MESSAGE_TYPE(msg)) {
+        case GST_MESSAGE_EOS:
+            g_main_loop_quit(loop);
+            break;
+
+        default:
+            break;
+    }
+	return 0;
+}
+
+int gstreamer_setup(void)
+{
+    
+	/* create pipeline  */
+    pipeline = gst_pipeline_new("my-pipeline");
+    if (!pipeline) {
+        g_print("Failed to create pipeline!\n");
+        return -1;
+    }
+
+    /* add watch for bus messages */
+    bus = gst_pipeline_get_bus(GST_PIPELINE (pipeline));
+    bus_watch_id = gst_bus_add_watch(bus, bus_callback, NULL);
+    gst_object_unref(bus);
+    
+	/* create application elements */
+    camera = gst_element_factory_make("v4l2src", "camera");
+    img_enc = gst_element_factory_make("jpegenc", "img_enc");
+    img_writer = gst_element_factory_make("filesink", "img_writer");
+    caps_filter = gst_element_factory_make("capsfilter", "caps_filter");
+
+    if (!camera || !img_enc || !img_writer || !caps_filter) {
+        g_print("Failed to create one or more elements!\n");
+        return -1;
+    }
+    
+    g_object_set(G_OBJECT (camera), "num-buffers", 1, NULL);
+
+    /* set ouput image location */
+    g_object_set(G_OBJECT (img_writer), "location", "capture.jpeg", NULL);
+    
+    caps = gst_caps_from_string("image/jpeg,width=1280,height=720,framerate=30/1");
+
+    g_object_set(G_OBJECT (caps_filter), "caps", caps, NULL);
+    
+	/* add elements to pipeline */
+    gst_bin_add_many(GST_BIN (pipeline), camera, caps_filter, img_writer, NULL);
+
+    if (!gst_element_link_many (camera, caps_filter, img_writer, NULL)) {
+        g_print ("Failed to link elements\n");
+        return -1;
+    }
+    
+    /* start capture */
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+
+    loop = g_main_loop_new(NULL, FALSE);
+    g_main_loop_run(loop);
+
+    /* Release pipeline */
+    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_object_unref(GST_OBJECT (pipeline));
+    g_main_loop_unref(loop);
+
+}
+
+/**
 * @fn get_new_fname(char *fname)
 * @brief generates new and unique file name for video files
 * @param[out] fname file name string
