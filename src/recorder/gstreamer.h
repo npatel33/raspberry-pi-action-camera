@@ -13,7 +13,8 @@
 #include <gst/gst.h>
 
 GstElement *pipeline;
-GstElement *camera, *caps_filter, *img_enc, *img_writer;
+GstElement *camera, *caps_filter, *video_converter, 
+		   *img_enc, *video_enc, *video_writer;
 GstCaps *caps;
 GstBus *bus;
 guint bus_watch_id;

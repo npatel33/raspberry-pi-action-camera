@@ -29,6 +29,11 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data)
 	return 0;
 }
 
+/**
+* @fn gstreamer_setup(void)
+* @brief sets up gstreamer elements like pipeline and other elements
+* @return return code (success or fail)
+*/ 
 int gstreamer_setup(void)
 {
     
@@ -46,28 +51,33 @@ int gstreamer_setup(void)
     
 	/* create application elements */
     camera = gst_element_factory_make("v4l2src", "camera");
+	video_converter = gst_element_factory_make("videoconvert", "video_converter");
     img_enc = gst_element_factory_make("jpegenc", "img_enc");
-    img_writer = gst_element_factory_make("filesink", "img_writer");
+	video_enc = gst_element_factory_make("avimux", "video_enc");
+    video_writer = gst_element_factory_make("filesink", "video_writer");
     caps_filter = gst_element_factory_make("capsfilter", "caps_filter");
 
-    if (!camera || !img_enc || !img_writer || !caps_filter) {
+    if (!camera || !video_converter || !img_enc || !video_enc || 
+			!video_writer || !caps_filter) {
         g_print("Failed to create one or more elements!\n");
         return -1;
     }
     
-    g_object_set(G_OBJECT (camera), "num-buffers", 1, NULL);
+    //g_object_set(G_OBJECT (camera), "num-buffers", 1, NULL);
 
     /* set ouput image location */
-    g_object_set(G_OBJECT (img_writer), "location", "capture.jpeg", NULL);
+    g_object_set(G_OBJECT (video_writer), "location", "capture.avi", NULL);
     
-    caps = gst_caps_from_string("image/jpeg,width=1280,height=720,framerate=30/1");
+    caps = gst_caps_from_string("video/x-raw,framerate=30/1");
 
     g_object_set(G_OBJECT (caps_filter), "caps", caps, NULL);
     
 	/* add elements to pipeline */
-    gst_bin_add_many(GST_BIN (pipeline), camera, caps_filter, img_writer, NULL);
+    gst_bin_add_many(GST_BIN (pipeline), camera, caps_filter, video_converter, img_enc,
+			video_enc, video_writer, NULL);
 
-    if (!gst_element_link_many (camera, caps_filter, img_writer, NULL)) {
+    if (!gst_element_link_many (camera, caps_filter, video_converter, img_enc, 
+				video_enc, video_writer, NULL)) {
         g_print ("Failed to link elements\n");
         return -1;
     }
