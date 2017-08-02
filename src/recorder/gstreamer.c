@@ -38,19 +38,25 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data)
 int gstreamer_setup(void)
 {
 
-	/* create pipeline  */
+	/**
+	 * create pipeline
+	 */
     pipeline = gst_pipeline_new("my-pipeline");
     if (!pipeline) {
         g_print("Failed to create pipeline!\n");
         return -1;
     }
 
-    /* add watch for bus messages */
+    /**
+	 * add watch for bus messages
+	 */
     bus = gst_pipeline_get_bus(GST_PIPELINE (pipeline));
     bus_watch_id = gst_bus_add_watch(bus, bus_callback, NULL);
     gst_object_unref(bus);
 
-	/* create application elements */
+	/**
+	 * create application elements
+	 */
     camera = gst_element_factory_make("v4l2src", "camera");
 	video_converter = gst_element_factory_make("videoconvert", "video_converter");
     img_enc = gst_element_factory_make("jpegenc", "img_enc");
@@ -64,16 +70,18 @@ int gstreamer_setup(void)
         return -1;
     }
 
-    //g_object_set(G_OBJECT (camera), "num-buffers", 1, NULL);
-
-    /* set ouput image location */
+    /**
+	 * set ouput image location
+	 */
     g_object_set(G_OBJECT (video_writer), "location", "capture.avi", NULL);
 
     caps = gst_caps_from_string("video/x-raw,framerate=30/1");
 
     g_object_set(G_OBJECT (caps_filter), "caps", caps, NULL);
 
-	/* add elements to pipeline */
+	/*
+	 * add elements to pipeline
+	 */
     gst_bin_add_many(GST_BIN (pipeline), camera, caps_filter, video_converter, img_enc,
 			video_enc, video_writer, NULL);
 
@@ -83,13 +91,17 @@ int gstreamer_setup(void)
         return -1;
     }
 
-    /* start capture */
+    /*
+	 * start capture
+	 */
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     loop = g_main_loop_new(NULL, FALSE);
     g_main_loop_run(loop);
 
-    /* Release pipeline */
+    /*
+	 * Release pipeline
+	 */
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(GST_OBJECT (pipeline));
     g_main_loop_unref(loop);
