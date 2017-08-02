@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <stddef.h>
+#include <gst/gst.h>
 #include "recorder/gstreamer.h"
 
 /**
@@ -45,15 +46,23 @@ void* console_reader(void *nothing){
 	char key = 'a';
 	status = NONE;
 	
-	printf("Welcome to the Raspberry Pie Action Cam. \nUser command options \nStart - s \nPause - p \nStop - o \nExit - e \n");
+	printf("Welcome to the Raspberry Pi Action Cam. \nUser command\
+			options \nStart - s \nPause - p \nStop - o \nExit - e \n");
 
 	while(key!='e'){
 		printf("Enter command: ");
 		scanf(" %c", &key);
-		if(key == 's')
+		
+		if(key == 's') {
+			printf("Capturing is started!\n");
+			gst_element_set_state(pipeline, GST_STATE_PLAYING);
 			status = START;
-		else if(key == 'p')
+		}
+		else if(key == 'p') {
+			printf("Capturing is paused!\n");
+			gst_element_set_state(pipeline, GST_STATE_PAUSED);
 			status = PAUSE;
+		}
 		else if(key == 'o')
 			status = STOP;
 		else if(key == 'e')
