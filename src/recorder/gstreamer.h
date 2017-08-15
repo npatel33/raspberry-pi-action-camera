@@ -2,10 +2,10 @@
 #define RECORDER_GSTREAMER_H
 
 /**
-* @file gstreamer.h
-* @brief gstreamer functions and variable declarations
-* @author Nisarg Patel
-*/
+ * @file gstreamer.h
+ * @brief gstreamer functions and variable declarations
+ * @author Nisarg Patel
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
@@ -14,7 +14,7 @@
 
 GstElement *pipeline;
 GstElement *camera, *caps_filter, *video_converter, 
-		   *img_enc, *video_enc, *video_writer;
+           *img_enc, *video_enc, *video_writer;
 GstCaps *caps;
 GstBus *bus;
 guint bus_watch_id;
