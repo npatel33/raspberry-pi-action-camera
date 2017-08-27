@@ -18,7 +18,6 @@
  */
 typedef struct Recorder {
     GstElement *pipeline;
-    GMainLoop *loop;
 } Recorder;
 
 
