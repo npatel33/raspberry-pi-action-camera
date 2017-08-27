@@ -1,58 +1,39 @@
-#include "gstreamer.h"
+#include "recorder.h"
 
 /**
- * @file gstreamer.c
- * @brief Contains routines to initialize and use gstreamer
- * @author Nisarg Patel
+ * @file recorder.c
+ * @brief Contains routines to use recorder
+ *
+ * Recorder uses gstreamer library to capture video.
+ *
+ * @author Abhimanyu Chopra, Nisarg Patel
  */
 
 
 /**
- * @fn bus_callback (GstBus *bus, GstMessage *msg, gpointer data)
- * @brief callback function for different bus activity
- * @param bus pointer to the bus variable
- * @param msg pointer to the bus message
- * @param data bus data
- */
-static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data)
-{
-    g_print("Got %s message\n", GST_MESSAGE_TYPE_NAME(msg));
-
-    switch (GST_MESSAGE_TYPE(msg)) {
-
-        case GST_MESSAGE_EOS:
-            g_main_loop_quit(loop);
-            break;
-
-        default:
-            break;
-    }
-    return 0;
-}
-
-/**
- * @fn gstreamer_setup(void)
- * @brief sets up gstreamer elements like pipeline and other elements
+ * @fn recorder_init(void)
+ * @brief ### Initializes recorder ###
+ *
+ * Initialization of recorder involves setting up gstreamer pipeline
+ * and necessary components like v4l2src, muxer etc.
+ *
  * @return return code (success or fail)
  */ 
-int gstreamer_setup(void)
+int recorder_init(Recorder *recorder)
 {
+    GstElement *camera, *caps_filter, *video_converter, 
+           *img_enc, *video_enc, *video_writer;
+    GstCaps *caps;
+    guint bus_watch_id;
 
     /*!
      * create pipeline
      */
-    pipeline = gst_pipeline_new("my-pipeline");
-    if (!pipeline) {
+    recorder->pipeline = gst_pipeline_new("my-pipeline");
+    if (!recorder->pipeline) {
         g_print("Failed to create pipeline!\n");
         return -1;
     }
-
-    /**
-     * add watch for bus messages
-     */
-    bus = gst_pipeline_get_bus(GST_PIPELINE (pipeline));
-    bus_watch_id = gst_bus_add_watch(bus, bus_callback, NULL);
-    gst_object_unref(bus);
 
     /**
      * create application elements
@@ -82,7 +63,7 @@ int gstreamer_setup(void)
     /*
      * add elements to pipeline
      */
-    gst_bin_add_many(GST_BIN (pipeline), camera, caps_filter, video_converter, img_enc,
+    gst_bin_add_many(GST_BIN (recorder->pipeline), camera, caps_filter, video_converter, img_enc,
             video_enc, video_writer, NULL);
 
     if (!gst_element_link_many (camera, caps_filter, video_converter, img_enc, 
@@ -91,25 +72,53 @@ int gstreamer_setup(void)
         return -1;
     }
 
-    /*!
-     * start capture
-     */
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-    loop = g_main_loop_new(NULL, FALSE);
-    g_main_loop_run(loop);
-
-    /*!
-     * Release pipeline
-     */
-    gst_element_set_state(pipeline, GST_STATE_NULL);
-    gst_object_unref(GST_OBJECT (pipeline));
-    g_main_loop_unref(loop);
-
     return 0;
 
 }
 
+/**
+ * @fn recorder_start(Recorder *recorder)
+ * @brief ### Starts recorder ###
+ */
+int recorder_start(Recorder *recorder)
+{
+    /*!
+     * start capture
+     */
+    gst_element_set_state(recorder->pipeline, GST_STATE_PLAYING); 
+
+    return 0;
+}
+
+
+/**
+ * @fn recorder_pause(Recorder *recorder)
+ * @brief ### Pauses recorder ###
+ */
+int recorder_pause(Recorder *recorder)
+{
+    /*!
+     * pause capture
+     */
+    gst_element_set_state(recorder->pipeline, GST_STATE_PAUSED);
+
+    return 0;
+}
+
+/**
+ * @fn recorder_stop(Recorder *recorder)
+ * @brief ### Stops recorder ###
+ */
+int recorder_stop(Recorder *recorder)
+{
+    /*!
+     * Release pipeline
+     */
+    gst_element_set_state(recorder->pipeline, GST_STATE_NULL);
+    gst_object_unref(GST_OBJECT (recorder->pipeline));
+
+    return 0;
+}
 /**
  * @fn get_new_fname(char *fname)
  * @brief generates new and unique file name for video files
