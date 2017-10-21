@@ -15,9 +15,16 @@
 /**
  * @brief ### Recorder structure ###
  *
+ * Members <br/>
+ * 
+ * pipeline -> Gstreamer pipeline <br/>
+ * resolution -> {width, height} <br/>
+ * fps -> frames per second 
  */
 typedef struct Recorder {
     GstElement *pipeline;
+    unsigned int resolution[2];
+    unsigned int fps;
 } Recorder;
 
 
