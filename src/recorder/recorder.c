@@ -21,9 +21,10 @@
  */ 
 int recorder_init(Recorder *recorder)
 {
-    GstElement *camera, *caps_filter, *video_converter, 
-           *img_enc, *video_enc, *video_writer;
+    GstElement *camera, *caps_filter, *video_parser,
+               *video_enc, *video_writer;
     GstCaps *caps;
+    char caps_str[256];
     guint bus_watch_id;
 
     /*!
@@ -39,13 +40,12 @@ int recorder_init(Recorder *recorder)
      * create application elements
      */
     camera = gst_element_factory_make("v4l2src", "camera");
-    video_converter = gst_element_factory_make("videoconvert", "video_converter");
-    img_enc = gst_element_factory_make("jpegenc", "img_enc");
-    video_enc = gst_element_factory_make("avimux", "video_enc");
+    video_enc = gst_element_factory_make("qtmux", "video_enc");
     video_writer = gst_element_factory_make("filesink", "video_writer");
+    video_parser = gst_element_factory_make("h264parse", "video_parser");
     caps_filter = gst_element_factory_make("capsfilter", "caps_filter");
 
-    if (!camera || !video_converter || !img_enc || !video_enc || 
+    if (!camera || !video_parser || !video_enc || 
             !video_writer || !caps_filter) {
         g_print("Failed to create one or more elements!\n");
         return -1;
@@ -54,19 +54,23 @@ int recorder_init(Recorder *recorder)
     /**
      * set ouput image location
      */
-    g_object_set(G_OBJECT (video_writer), "location", "capture.avi", NULL);
+    g_object_set(G_OBJECT (video_writer), "location", "capture.mp4", NULL);
+    g_object_set(G_OBJECT (video_writer), "sync", TRUE, NULL);
 
-    caps = gst_caps_from_string("video/x-raw,framerate=30/1");
+    sprintf(caps_str, "video/x-h264,framerate=%d/1,width=%d,height=%d",
+            recorder->fps, recorder->resolution[0], recorder->resolution[1]);
+    
+    caps = gst_caps_from_string(caps_str);
 
     g_object_set(G_OBJECT (caps_filter), "caps", caps, NULL);
 
     /*
      * add elements to pipeline
      */
-    gst_bin_add_many(GST_BIN (recorder->pipeline), camera, caps_filter, video_converter, img_enc,
+    gst_bin_add_many(GST_BIN (recorder->pipeline), camera, caps_filter, video_parser,
             video_enc, video_writer, NULL);
 
-    if (!gst_element_link_many (camera, caps_filter, video_converter, img_enc, 
+    if (!gst_element_link_many (camera, caps_filter, video_parser, 
                 video_enc, video_writer, NULL)) {
         g_print ("Failed to link elements\n");
         return -1;
@@ -111,6 +115,13 @@ int recorder_pause(Recorder *recorder)
  */
 int recorder_stop(Recorder *recorder)
 {
+
+    /* Send EOS signal to pipeline
+     * 
+     * Without this signal final video may get corrupted
+     */
+    gst_element_send_event(recorder->pipeline, gst_event_new_eos());
+
     /*!
      * Release pipeline
      */
