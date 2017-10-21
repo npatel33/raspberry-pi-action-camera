@@ -8,6 +8,8 @@
 #include <semaphore.h>
 #include <stddef.h>
 #include <gst/gst.h>
+#include <glib.h>
+#include <gio/gio.h>
 #include "recorder/recorder.h"
 
 /**
@@ -65,8 +67,9 @@ void* console_reader(void *args) {
 
     }
 
-    return NULL;
+    /* return NULL; */
 }
+
 
 /**
  * @fn main(int argc, char *argv[])
@@ -74,23 +77,27 @@ void* console_reader(void *args) {
  */
 int main(int argc, char *argv[])
 {
+
     Recorder recorder;
-    pthread_t tid[10];
+    pthread_t console_thread;
 
+    /* Setting resolution to full HD */
+    recorder.resolution[0] = 1920;
+    recorder.resolution[1] = 1080;
+
+    /* Frames per second = 60 */
+    recorder.fps = 60;
+    
     gst_init(NULL, NULL);
-
     recorder_init(&recorder);
 
     // create console reader thread
-    if((errno = pthread_create(&(tid[0]), NULL, &console_reader, (void *) &recorder)!=0)){
+    if((errno = pthread_create(&(console_thread), NULL, &console_reader, (void *) &recorder)!=0)){
         fprintf(stderr,"Error creating console reader thread. Error Code:%d %s\n",errno,strerror(errno) );
         exit(EXIT_FAILURE);
     }
     
-    // wait for threads to exit
-    for(int i=0;i<10;i++){
-        pthread_join(tid[i],NULL);
-    }
+    pthread_join(console_thread, NULL);
 
     printf("Thank You. Bye!\n");
 
