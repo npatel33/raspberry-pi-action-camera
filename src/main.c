@@ -81,13 +81,6 @@ int main(int argc, char *argv[])
     Recorder recorder;
     pthread_t console_thread;
 
-    /* Setting resolution to full HD */
-    recorder.resolution[0] = 1920;
-    recorder.resolution[1] = 1080;
-
-    /* Frames per second = 60 */
-    recorder.fps = 60;
-    
     gst_init(NULL, NULL);
     recorder_init(&recorder);
 
